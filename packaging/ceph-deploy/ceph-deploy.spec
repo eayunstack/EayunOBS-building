@@ -1,6 +1,7 @@
 #
 # spec file for package ceph-deploy
 #
+%global dist_eayunobs .eayunobs.1.0
 
 %if ! (0%{?fedora} > 12 || 0%{?rhel} > 5)
 %{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
@@ -12,7 +13,7 @@
 #################################################################################
 Name:           ceph-deploy
 Version:       1.5.28
-Release:        0
+Release:        0%{?dist_eayunobs}
 Summary:        Admin and deploy tool for Ceph
 License:        MIT
 Group:          System/Filesystems

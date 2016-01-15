@@ -1,4 +1,4 @@
-srpm_repo = https://kojipkgs.fedoraproject.org//packages/ceph/0.80.7/0.4.el7/src
+srpm_repo = http://192.168.2.65/testing/EayunOBS/base_srpm
 base_srpm = ceph-0.80.7-0.4.el7.src.rpm
 spec_file = ceph.spec
 

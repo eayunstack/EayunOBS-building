@@ -1,3 +1,5 @@
+%global dist_eayunobs .eayunobs.1.0
+
 %bcond_with ocf
 
 %if ! (0%{?fedora} > 12 || 0%{?rhel} > 5)
@@ -13,7 +15,7 @@ Name:		ceph
 Version:	0.80.7
 # This should always be lower than 2, we do not want to update over base rhel.
 # Please use 0.x if updating instead.
-Release:	0.4%{?dist}
+Release:	0.4%{?dist_eayunobs}
 Epoch:		1
 Summary:	User space components of the Ceph file system
 License:	GPLv2
