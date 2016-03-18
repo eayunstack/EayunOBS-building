@@ -1,0 +1,28 @@
+From ee4f6beecd931d38696f4b4d448428f51839a6d5 Mon Sep 17 00:00:00 2001
+From: isyippee <yippee_liu@163.com>
+Date: Wed, 11 Nov 2015 10:45:32 +0800
+Subject: [PATCH 04/14] Create region root pools,Otherwise fail to update
+ regionmap
+
+---
+ ceph_deploy/eayunrgw.py | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/ceph_deploy/eayunrgw.py b/ceph_deploy/eayunrgw.py
+index 056a5ee..cea8ddd 100644
+--- a/ceph_deploy/eayunrgw.py
++++ b/ceph_deploy/eayunrgw.py
+@@ -246,6 +246,10 @@ def eayunrgw_create(args):
+         remoto.process.run(conn,
+                            ['ceph', 'osd', 'pool', 'create', pool, '32', ],
+                            timeout=7)
++    # Create region root pools,Otherwise fail to update regionmap
++    remoto.process.run(conn,
++                   ['ceph', 'osd', 'pool', 'create', '.%s.rgw.root' % region_name, '32', ],
++                   timeout=7)
+ 
+     config_http(distro, conn, gw_name)
+ 
+-- 
+2.8.0.rc3
+

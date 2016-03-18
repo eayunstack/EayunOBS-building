@@ -1,0 +1,50 @@
+From b04e501177f2a9d2821bf0a3b47799b719aa5091 Mon Sep 17 00:00:00 2001
+From: isyippee <yippee_liu@163.com>
+Date: Wed, 16 Dec 2015 10:04:19 +0800
+Subject: [PATCH 07/14] Don't recursion when creating a user
+
+Signed-off-by: isyippee <yippee_liu@163.com>
+---
+ ceph_deploy/eayunrgw.py | 19 ++++---------------
+ 1 file changed, 4 insertions(+), 15 deletions(-)
+
+diff --git a/ceph_deploy/eayunrgw.py b/ceph_deploy/eayunrgw.py
+index 526e849..ac3d7f0 100644
+--- a/ceph_deploy/eayunrgw.py
++++ b/ceph_deploy/eayunrgw.py
+@@ -332,28 +332,17 @@ def eayunrgw_create(args):
+              '--system'],
+             timeout=7)
+ 
+-        access_key, secret_key = ('', '')
++        acc_key, sec_key = ('', '')
+         if returncode != 0:
+             LOG.error('Get radosgw user access_key and secret_key failure')
+         else:
+             m = re.search('"access_key": "(\S+)"', str(stdout))
+             if hasattr(m, 'group'):
+-                access_key = m.group(1)
++                acc_key = m.group(1)
+             m = re.search('"secret_key": "(\S+)"', str(stdout))
+             if hasattr(m, 'group'):
+-                secret_key = m.group(1)
+-
+-        if not access_key or not secret_key:
+-            raise
+-        if '/' in secret_key or '\\' in secret_key:
+-            remoto.process.run(
+-                conn,
+-                ['radosgw-admin', 'user', 'rm', '--uid=%s' % name, '--name',
+-                 'client.radosgw.%s' % name, ],
+-                timeout=7)
+-            return create_zone_user(name)
+-        else:
+-            return access_key, secret_key
++                sec_key = m.group(1)
++            return acc_key, sec_key
+ 
+     # second configure
+     access_key, secret_key = create_zone_user(gw_name)
+-- 
+2.8.0.rc3
+

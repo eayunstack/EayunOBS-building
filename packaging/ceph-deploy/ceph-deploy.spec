@@ -13,12 +13,28 @@
 #################################################################################
 Name:           ceph-deploy
 Version:       1.5.28
-Release:        0%{?dist_eayunobs}
+Release:        1%{?dist_eayunobs}
 Summary:        Admin and deploy tool for Ceph
 License:        MIT
 Group:          System/Filesystems
 URL:            http://ceph.com/
 Source0:        %{name}-%{version}.tar.bz2
+
+Patch0001:      0001-eayunrgw-add-eayunrgw-deploy-architect.patch
+Patch0002:      0002-the-implement-of-eayunrgw.patch
+Patch0003:      0003-update-command-parameter-required-True.patch
+Patch0004:      0004-Create-region-root-pools-Otherwise-fail-to-update-re.patch
+Patch0005:      0005-Determine-the-installation-of-httpd.patch
+Patch0006:      0006-a-little-problem-about-syntax-var.patch
+Patch0007:      0007-Don-t-recursion-when-creating-a-user.patch
+Patch0008:      0008-Add-pools.patch
+Patch0009:      0009-mkdir-log-path.patch
+Patch0010:      0010-Modify-rgw-start-method-and-enable-httpd.patch
+Patch0011:      0011-Add-multi-domain-name-when-deploy.patch
+Patch0012:      0012-Missing-.-in-pool-name.patch
+Patch0013:      0013-Modify-http-start-command.patch
+Patch0014:      0014-Modify-region-infile.patch
+
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 BuildRequires:  python-devel
 BuildRequires:  python-distribute
@@ -55,6 +71,20 @@ An easy to use admin tool for deploy ceph storage clusters.
 %prep
 #%%setup -q -n %%{name}
 %setup -q
+%patch0001 -p1
+%patch0002 -p1
+%patch0003 -p1
+%patch0004 -p1
+%patch0005 -p1
+%patch0006 -p1
+%patch0007 -p1
+%patch0008 -p1
+%patch0009 -p1
+%patch0010 -p1
+%patch0011 -p1
+%patch0012 -p1
+%patch0013 -p1
+%patch0014 -p1
 
 %build
 #python setup.py build
@@ -73,3 +103,18 @@ install -m 0755 -D scripts/ceph-deploy $RPM_BUILD_ROOT/usr/bin
 %{python_sitelib}/*
 
 %changelog
+* Fri Mar 18 2016 Zhao Chao <chao.zhao@eayun.com> - 1.5.28-1.eayunobs.1.0
+- add 0001-eayunrgw-add-eayunrgw-deploy-architect.patch
+- add 0002-the-implement-of-eayunrgw.patch
+- add 0003-update-command-parameter-required-True.patch
+- add 0004-Create-region-root-pools-Otherwise-fail-to-update-re.patch
+- add 0005-Determine-the-installation-of-httpd.patch
+- add 0006-a-little-problem-about-syntax-var.patch
+- add 0007-Don-t-recursion-when-creating-a-user.patch
+- add 0008-Add-pools.patch
+- add 0009-mkdir-log-path.patch
+- add 0010-Modify-rgw-start-method-and-enable-httpd.patch
+- add 0011-Add-multi-domain-name-when-deploy.patch
+- add 0012-Missing-.-in-pool-name.patch
+- add 0013-Modify-http-start-command.patch
+- add 0014-Modify-region-infile.patch

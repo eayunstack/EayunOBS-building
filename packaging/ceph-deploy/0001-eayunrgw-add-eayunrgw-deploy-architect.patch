@@ -1,0 +1,98 @@
+From e237f3568530682fb93480d061c675a810f3b33a Mon Sep 17 00:00:00 2001
+From: Dunrong Huang <dunrong.huang@eayun.com>
+Date: Mon, 9 Nov 2015 11:02:30 +0800
+Subject: [PATCH 01/14] eayunrgw: add eayunrgw deploy architect
+
+Signed-off-by: Dunrong Huang <dunrong.huang@eayun.com>
+---
+ ceph_deploy/eayunrgw.py | 65 +++++++++++++++++++++++++++++++++++++++++++++++++
+ setup.py                |  1 +
+ 2 files changed, 66 insertions(+)
+ create mode 100644 ceph_deploy/eayunrgw.py
+
+diff --git a/ceph_deploy/eayunrgw.py b/ceph_deploy/eayunrgw.py
+new file mode 100644
+index 0000000..5ec9d40
+--- /dev/null
++++ b/ceph_deploy/eayunrgw.py
+@@ -0,0 +1,65 @@
++from ceph_deploy.cliutil import priority
++import logging
++
++LOG = logging.getLogger(__name__)
++
++
++def eayunrgw_create(args):
++    LOG.info("eayunrgw create ")
++
++
++def eayunrgw_add(args):
++    LOG.info("eayunrgw add ")
++
++
++def eayunrgw(args):
++    if args.subcommand == 'create':
++        eayunrgw_create(args)
++    elif args.subcommand == 'add':
++        eayunrgw_add(args)
++
++
++@priority(30)
++def make(parser):
++    """
++    RGWEayun RGW deploy tool
++    """
++    eayunrgw_parser = parser.add_subparsers(dest='subcommand')
++    eayunrgw_create = eayunrgw_parser.add_parser(
++        'create',
++        help='Create an Eayun RGW instance'
++        )
++    eayunrgw_create.add_argument(
++        '--region',
++        metavar='REGION',
++        help='The name of logical geographic area, e.g. beijing'
++        )
++    eayunrgw_create.add_argument(
++        '--zone',
++        metavar='ZONE',
++        help='The name of logical grouping, e.g. daxing'
++        )
++    eayunrgw_create.add_argument(
++        '--host',
++        metavar='HOST',
++        help='The host to which deploy eayun rgw'
++        )
++
++    eayunrgw_create = eayunrgw_parser.add_parser(
++        'add',
++        help='Add an eayunrgw instance to exist and zone'
++        )
++    eayunrgw_create.add_argument(
++        '--zone',
++        metavar='ZONE',
++        help='The name of logical grouping, e.g. daxing'
++        )
++    eayunrgw_create.add_argument(
++        '--host',
++        metavar='HOST',
++        help='The host to which deploy eayun rgw'
++        )
++
++    parser.set_defaults(
++        func=eayunrgw,
++        )
+diff --git a/setup.py b/setup.py
+index ef612ed..367958c 100644
+--- a/setup.py
++++ b/setup.py
+@@ -74,6 +74,7 @@ setup(
+             'calamari = ceph_deploy.calamari:make',
+             'rgw = ceph_deploy.rgw:make',
+             'repo = ceph_deploy.repo:make',
++            'eayunrgw = ceph_deploy.eayunrgw:make',
+             ],
+ 
+         },
+-- 
+2.8.0.rc3
+
