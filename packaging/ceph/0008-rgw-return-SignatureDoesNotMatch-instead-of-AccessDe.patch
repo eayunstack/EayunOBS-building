@@ -1,0 +1,60 @@
+From 44f038f9229418a1a449f01b27d1f51b750339dc Mon Sep 17 00:00:00 2001
+From: Yehuda Sadeh <yehuda@redhat.com>
+Date: Tue, 16 Dec 2014 09:11:20 -0800
+Subject: [PATCH 08/23] rgw: return SignatureDoesNotMatch instead of
+ AccessDenied
+
+Fixes: #10329
+
+Signed-off-by: Yehuda Sadeh <yehuda@redhat.com>
+(cherry picked from commit ef75d720f289ce2e18c0047380a16b7688864560)
+Signed-off-by: Dunrong Huang <riegamaths@gmail.com>
+---
+ src/rgw/rgw_common.h      | 1 +
+ src/rgw/rgw_http_errors.h | 1 +
+ src/rgw/rgw_rest_s3.cc    | 5 +++--
+ 3 files changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/src/rgw/rgw_common.h b/src/rgw/rgw_common.h
+index 0f3723e..5b329ea 100644
+--- a/src/rgw/rgw_common.h
++++ b/src/rgw/rgw_common.h
+@@ -135,6 +135,7 @@ using ceph::crypto::MD5;
+ #define ERR_PERMANENT_REDIRECT   2024
+ #define ERR_LOCKED               2025
+ #define ERR_QUOTA_EXCEEDED       2026
++#define ERR_SIGNATURE_NO_MATCH   2027
+ #define ERR_USER_SUSPENDED       2100
+ #define ERR_INTERNAL_ERROR       2200
+ 
+diff --git a/src/rgw/rgw_http_errors.h b/src/rgw/rgw_http_errors.h
+index 0ab19ad..818f5a1 100644
+--- a/src/rgw/rgw_http_errors.h
++++ b/src/rgw/rgw_http_errors.h
+@@ -34,6 +34,7 @@ const static struct rgw_http_errors RGW_HTTP_ERRORS[] = {
+     { ERR_LENGTH_REQUIRED, 411, "MissingContentLength" },
+     { EACCES, 403, "AccessDenied" },
+     { EPERM, 403, "AccessDenied" },
++    { ERR_SIGNATURE_NO_MATCH, 403, "SignatureDoesNotMatch" },
+     { ERR_USER_SUSPENDED, 403, "UserSuspended" },
+     { ERR_REQUEST_TIME_SKEWED, 403, "RequestTimeTooSkewed" },
+     { ERR_QUOTA_EXCEEDED, 403, "QuotaExceeded" },
+diff --git a/src/rgw/rgw_rest_s3.cc b/src/rgw/rgw_rest_s3.cc
+index 33c6643..3e39538 100644
+--- a/src/rgw/rgw_rest_s3.cc
++++ b/src/rgw/rgw_rest_s3.cc
+@@ -2183,8 +2183,9 @@ int RGW_Auth_S3::authorize(RGWRados *store, struct req_state *s)
+     dout(15) << "auth_sign=" << auth_sign << dendl;
+     dout(15) << "compare=" << auth_sign.compare(digest) << dendl;
+ 
+-    if (auth_sign != digest)
+-      return -EPERM;
++    if (auth_sign != digest) {
++      return -ERR_SIGNATURE_NO_MATCH;
++    }
+ 
+     if (s->user.system) {
+       s->system_request = true;
+-- 
+2.8.0.rc3
+

@@ -1,0 +1,28 @@
+From 5cfdda3aa682995751abd52b0f0f357013dfd5c6 Mon Sep 17 00:00:00 2001
+From: wuxingyi <wuxingyi@letv.com>
+Date: Tue, 23 Jun 2015 01:46:48 +0000
+Subject: [PATCH 03/23] rgw: fix empty json response when getting user quota
+
+Fixes: #12117
+Signed-off-by: wuxingyi <wuxingyi@letv.com>
+(cherry picked from commit 64fceed2202c94edf28b8315fe14c9affa8c0116)
+Signed-off-by: Dunrong Huang <dunrong.huang@eayun.com>
+---
+ src/rgw/rgw_rest_user.cc | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/rgw/rgw_rest_user.cc b/src/rgw/rgw_rest_user.cc
+index 30f46f0..1d547c1 100644
+--- a/src/rgw/rgw_rest_user.cc
++++ b/src/rgw/rgw_rest_user.cc
+@@ -683,6 +683,7 @@ void RGWOp_Quota_Info::execute()
+   if (http_ret < 0)
+     return;
+ 
++  flusher.start(0);
+   if (show_all) {
+     UserQuotas quotas(info);
+     encode_json("quota", quotas, s->formatter);
+-- 
+2.8.0.rc3
+

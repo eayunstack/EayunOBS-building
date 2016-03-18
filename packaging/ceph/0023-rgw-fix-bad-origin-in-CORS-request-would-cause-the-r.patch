@@ -1,0 +1,31 @@
+From 1b7d42039d472d05174463f501b5fc7b97310615 Mon Sep 17 00:00:00 2001
+From: LiuYang <yippeetry@gmail.com>
+Date: Fri, 18 Mar 2016 13:08:22 +0800
+Subject: [PATCH 23/23] rgw: fix bad origin in CORS request would cause the rgw
+ to crash.
+
+when the length of the origin is less than the rule.
+
+Fixes: #6331
+
+Signed-off-by: LiuYang <yippeetry@gmail.com>
+---
+ src/rgw/rgw_cors.cc | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/rgw/rgw_cors.cc b/src/rgw/rgw_cors.cc
+index a120a68..fdf9c75 100644
+--- a/src/rgw/rgw_cors.cc
++++ b/src/rgw/rgw_cors.cc
+@@ -104,6 +104,8 @@ static bool is_string_in_set(set<string>& s, string h) {
+         string sl = ssplit.front();
+         dout(10) << "Finding " << sl << ", in " << h 
+           << ", at offset not less than " << flen << dendl;
++        if (h.size() < sl.size())
++          continue;
+         if (h.compare((h.size() - sl.size()), sl.size(), sl) != 0)
+           continue;
+         ssplit.pop_front();
+-- 
+2.8.0.rc3
+

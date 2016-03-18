@@ -1,0 +1,72 @@
+From 659f500e0d61a6015f1865c2305b149ab5f8202a Mon Sep 17 00:00:00 2001
+From: Dunrong Huang <riegamaths@gmail.com>
+Date: Mon, 28 Dec 2015 18:55:37 +0800
+Subject: [PATCH 07/23] rgw: do not abort when user passed bad parameters to
+ set quota
+
+when user passes bad parameter(e.g. pass "null" to bool parameter), the ceph_json.cc::decode_json_obj()
+will raise a exception with type of JSONDecoder::err(). If we do not catch this exception, the radosgw
+server will abort.
+
+Fixes: #14191
+
+$ curl -X PUT http://ceph1:9090/admin/user?quota&uid=test5&quota-type=user -d '{"enabled": "null"}'
+
+ 0> 2015-12-28 11:25:20.864091 7f0d46fb5700 -1 *** Caught signal (Aborted) **
+ in thread 7f0d46fb5700
+
+ ceph version 10.0.1-787-gc485d29 (c485d29a53f6a2c1a3b561c54632dbac1c4e9473)
+ 1: (ceph::BackTrace::BackTrace(int)+0x2d) [0x7f0e13ef88c5]
+ 2: (()+0x8fbfb7) [0x7f0e13ef7fb7]
+ 3: (()+0xf100) [0x7f0e082c3100]
+ 4: (gsignal()+0x37) [0x7f0e072fd5f7]
+ 5: (abort()+0x148) [0x7f0e072fece8]
+ 6: (__gnu_cxx::__verbose_terminate_handler()+0x165) [0x7f0e07c019b5]
+ 7: (()+0x5e926) [0x7f0e07bff926]
+ 8: (()+0x5e953) [0x7f0e07bff953]
+ 9: (()+0x5eb73) [0x7f0e07bffb73]
+ 10: (bool JSONDecoder::decode_json<bool>(char const*, bool&, JSONObj*, bool)+0x288) [0x7f0e13d74c2c]
+ 11: (RGWQuotaInfo::decode_json(JSONObj*)+0x6c) [0x7f0e13d71128]
+ 12: (void decode_json_obj<RGWQuotaInfo>(RGWQuotaInfo&, JSONObj*)+0x23) [0x7f0e13d21f16]
+ 13: (int rgw_rest_get_json_input<RGWQuotaInfo>(CephContext*, req_state*, RGWQuotaInfo&, int, bool*)+0x11e) [0x7f0e13d21e48]
+ 14: (RGWOp_Quota_Set::execute()+0x8c9) [0x7f0e13d1ed6d]
+ 15: (()+0x7532d2) [0x7f0e13d4f2d2
+
+Reported-by: Coffee Chou <coffee.zyr@gmail.com>
+Signed-off-by: Dunrong Huang <riegamaths@gmail.com>
+(cherry picked from commit 59f9058467480d21bd98e0e90aa97313a92478a1)
+
+Conflicts:
+	src/rgw/rgw_rest.h
+---
+ src/rgw/rgw_rest.h | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/src/rgw/rgw_rest.h b/src/rgw/rgw_rest.h
+index c8ed440..e2ad79d 100644
+--- a/src/rgw/rgw_rest.h
++++ b/src/rgw/rgw_rest.h
+@@ -48,13 +48,17 @@ int rgw_rest_get_json_input(CephContext *cct, req_state *s, T& out, int max_len,
+     return -EINVAL;
+   }
+ 
+-  decode_json_obj(out, &parser);
+-
+   free(data);
++
++  try {
++      decode_json_obj(out, &parser);
++  } catch (JSONDecoder::err& e) {
++      return -EINVAL;
++  }
++
+   return 0;
+ }
+ 
+-
+ class RESTArgs {
+ public:
+   static int get_string(struct req_state *s, const string& name, const string& def_val, string *val, bool *existed = NULL);
+-- 
+2.8.0.rc3
+

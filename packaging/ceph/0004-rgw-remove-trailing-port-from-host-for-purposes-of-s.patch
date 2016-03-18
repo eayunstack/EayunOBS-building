@@ -1,0 +1,104 @@
+From a805b6155aef1276cafd21e59d13a62c385ab99f Mon Sep 17 00:00:00 2001
+From: Sage Weil <sage@redhat.com>
+Date: Tue, 9 Jun 2015 14:15:10 -0400
+Subject: [PATCH 04/23] rgw: remove trailing :port from host for purposes of
+ subdomain matching
+
+Some clients (ahem, CrossFTP) include the :port in the HTTP_HOST header.
+Strip it out.
+
+Switch req_info field to a std::string and avoid copying it in preprocess.
+
+Signed-off-by: Sage Weil <sage@redhat.com>
+(cherry picked from commit abe4ec293d08b0314bf5c081ace2456073f3a22c)
+Signed-off-by: Dunrong Huang <dunrong.huang@eayun.com>
+---
+ src/rgw/rgw_common.cc | 15 +++++++++++++++
+ src/rgw/rgw_common.h  |  2 +-
+ src/rgw/rgw_rest.cc   | 20 +++++++++++---------
+ 3 files changed, 27 insertions(+), 10 deletions(-)
+
+diff --git a/src/rgw/rgw_common.cc b/src/rgw/rgw_common.cc
+index 9d4aa50..11abe70 100644
+--- a/src/rgw/rgw_common.cc
++++ b/src/rgw/rgw_common.cc
+@@ -105,6 +105,21 @@ req_info::req_info(CephContext *cct, class RGWEnv *e) : env(e) {
+     request_params = env->get("QUERY_STRING", "");
+   }
+   host = env->get("HTTP_HOST");
++
++  // strip off any trailing :port from host (added by CrossFTP and maybe others)
++  size_t colon_offset = host.find_last_of(':');
++  if (colon_offset != string::npos) {
++    bool all_digits = true;
++    for (unsigned i = colon_offset + 1; i < host.size(); ++i) {
++      if (!isdigit(host[i])) {
++	all_digits = false;
++	break;
++      }
++    }
++    if (all_digits) {
++      host.resize(colon_offset);
++    }
++  }
+ }
+ 
+ void req_info::rebuild_from(req_info& src)
+diff --git a/src/rgw/rgw_common.h b/src/rgw/rgw_common.h
+index 9980a32..0f3723e 100644
+--- a/src/rgw/rgw_common.h
++++ b/src/rgw/rgw_common.h
+@@ -841,7 +841,7 @@ struct req_info {
+   XMLArgs args;
+   map<string, string> x_meta_map;
+ 
+-  const char *host;
++  string host;
+   const char *method;
+   string script_uri;
+   string request_uri;
+diff --git a/src/rgw/rgw_rest.cc b/src/rgw/rgw_rest.cc
+index 9a815a8..a4378e4 100644
+--- a/src/rgw/rgw_rest.cc
++++ b/src/rgw/rgw_rest.cc
+@@ -1245,26 +1245,28 @@ int RGWREST::preprocess(struct req_state *s, RGWClientIO *cio)
+   req_info& info = s->info;
+ 
+   s->cio = cio;
+-  if (info.host) {
+-    string h(s->info.host);
+-
+-    ldout(s->cct, 10) << "host=" << s->info.host << dendl;
++  if (info.host.size()) {
++    ldout(s->cct, 10) << "host=" << info.host << dendl;
+     string domain;
+     string subdomain;
+-    bool in_hosted_domain = rgw_find_host_in_domains(h, &domain, &subdomain);
+-    ldout(s->cct, 20) << "subdomain=" << subdomain << " domain=" << domain << " in_hosted_domain=" << in_hosted_domain << dendl;
++    bool in_hosted_domain = rgw_find_host_in_domains(info.host, &domain,
++						     &subdomain);
++    ldout(s->cct, 20) << "subdomain=" << subdomain << " domain=" << domain
++		      << " in_hosted_domain=" << in_hosted_domain << dendl;
+ 
+     if (g_conf->rgw_resolve_cname && !in_hosted_domain) {
+       string cname;
+       bool found;
+-      int r = rgw_resolver->resolve_cname(h, cname, &found);
++      int r = rgw_resolver->resolve_cname(info.host, cname, &found);
+       if (r < 0) {
+ 	ldout(s->cct, 0) << "WARNING: rgw_resolver->resolve_cname() returned r=" << r << dendl;
+       }
+       if (found) {
+-        ldout(s->cct, 5) << "resolved host cname " << h << " -> " << cname << dendl;
++        ldout(s->cct, 5) << "resolved host cname " << info.host << " -> "
++			 << cname << dendl;
+         in_hosted_domain = rgw_find_host_in_domains(cname, &domain, &subdomain);
+-        ldout(s->cct, 20) << "subdomain=" << subdomain << " domain=" << domain << " in_hosted_domain=" << in_hosted_domain << dendl;
++        ldout(s->cct, 20) << "subdomain=" << subdomain << " domain=" << domain
++			  << " in_hosted_domain=" << in_hosted_domain << dendl;
+       }
+     }
+ 
+-- 
+2.8.0.rc3
+

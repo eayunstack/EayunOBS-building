@@ -1,0 +1,116 @@
+From 98e9a18e1280350905eb104c0cc4e5199fbe652a Mon Sep 17 00:00:00 2001
+From: Dunrong Huang <riegamaths@gmail.com>
+Date: Mon, 28 Dec 2015 18:14:22 +0800
+Subject: [PATCH 06/23] rgw: do not abort when user passed bad parameters to
+ set metadata
+
+Fixes: #14190
+
+when user passes bad parameter(e.g. pass "null" to bool parameter), the ceph_json.cc::decode_json_obj()
+will raise a exception with type of JSONDecoder::err(). If we do not catch this exception, the radosgw
+server will abort.
+
+$ curl -X PUT http://ceph1:9090/admin/metadata?user&format=json -d 'data = { "mtime": "null"}'
+
+terminate called after throwing an instance of 'JSONDecoder::err'
+*** Caught signal (Aborted) **
+ in thread 7ff982f55700
+ ceph version 10.0.1-787-gc485d29 (c485d29a53f6a2c1a3b561c54632dbac1c4e9473)
+ 1: (ceph::BackTrace::BackTrace(int)+0x2d) [0x7ffa814db8c5]
+ 2: (()+0x8fbfb7) [0x7ffa814dafb7]
+ 3: (()+0xf100) [0x7ffa758a6100]
+ 4: (gsignal()+0x37) [0x7ffa748e05f7]
+ 5: (abort()+0x148) [0x7ffa748e1ce8]
+ 6: (__gnu_cxx::__verbose_terminate_handler()+0x165) [0x7ffa751e49b5]
+ 7: (()+0x5e926) [0x7ffa751e2926]
+ 8: (()+0x5e953) [0x7ffa751e2953]
+ 9: (()+0x5eb73) [0x7ffa751e2b73]
+ 10: (bool JSONDecoder::decode_json<long>(char const*, long&, JSONObj*, bool)+0x28c) [0x7ffa8135920a]
+ 11: (RGWMetadataManager::put(std::string&, ceph::buffer::list&, RGWMetadataHandler::sync_type_t, obj_version*)+0x173) [0x7ffa81468029]
+ 12: (RGWOp_Metadata_Put::execute()+0x172) [0x7ffa81308dcc]
+ 13: (()+0x7532d2) [0x7ffa813322d2]
+ 14: (RGWFCGXProcess::handle_request(RGWRequest*)+0x90) [0x7ffa813328a4]
+
+Reported-by: Coffee Chou <coffee.zyr@gmail.com>
+Signed-off-by: Dunrong Huang <riegamaths@gmail.com>
+(cherry picked from commit 83503239c81573232429a5fe98381f1a8f1357e9)
+
+Conflicts:
+	src/rgw/rgw_user.cc
+---
+ src/rgw/rgw_bucket.cc   | 12 ++++++++++--
+ src/rgw/rgw_metadata.cc | 10 +++++++---
+ src/rgw/rgw_user.cc     |  6 ++++++
+ 3 files changed, 23 insertions(+), 5 deletions(-)
+
+diff --git a/src/rgw/rgw_bucket.cc b/src/rgw/rgw_bucket.cc
+index 3c4f66c..ee1d844 100644
+--- a/src/rgw/rgw_bucket.cc
++++ b/src/rgw/rgw_bucket.cc
+@@ -1475,7 +1475,11 @@ public:
+   int put(RGWRados *store, string& entry, RGWObjVersionTracker& objv_tracker,
+           time_t mtime, JSONObj *obj, sync_type_t sync_type) {
+     RGWBucketEntryPoint be, old_be;
+-    decode_json_obj(be, obj);
++    try {
++      decode_json_obj(be, obj);
++    } catch (JSONDecoder::err& e) {
++      return -EINVAL;
++    }
+ 
+     time_t orig_mtime;
+     map<string, bufferlist> attrs;
+@@ -1631,7 +1635,11 @@ public:
+   int put(RGWRados *store, string& oid, RGWObjVersionTracker& objv_tracker,
+           time_t mtime, JSONObj *obj, sync_type_t sync_type) {
+     RGWBucketCompleteInfo bci, old_bci;
+-    decode_json_obj(bci, obj);
++    try {
++      decode_json_obj(bci, obj);
++    } catch (JSONDecoder::err& e) {
++      return -EINVAL;
++    }
+ 
+     time_t orig_mtime;
+ 
+diff --git a/src/rgw/rgw_metadata.cc b/src/rgw/rgw_metadata.cc
+index 4307ce9..dde3636 100644
+--- a/src/rgw/rgw_metadata.cc
++++ b/src/rgw/rgw_metadata.cc
+@@ -354,9 +354,13 @@ int RGWMetadataManager::put(string& metadata_key, bufferlist& bl,
+ 
+   time_t mtime = 0;
+ 
+-  JSONDecoder::decode_json("key", metadata_key, &parser);
+-  JSONDecoder::decode_json("ver", *objv, &parser);
+-  JSONDecoder::decode_json("mtime", mtime, &parser);
++  try {
++    JSONDecoder::decode_json("key", metadata_key, &parser);
++    JSONDecoder::decode_json("ver", *objv, &parser);
++    JSONDecoder::decode_json("mtime", mtime, &parser);
++  } catch (JSONDecoder::err& e) {
++    return -EINVAL;
++  }
+ 
+   JSONObj *jo = parser.find_obj("data");
+   if (!jo) {
+diff --git a/src/rgw/rgw_user.cc b/src/rgw/rgw_user.cc
+index a32f42a..1886bd8 100644
+--- a/src/rgw/rgw_user.cc
++++ b/src/rgw/rgw_user.cc
+@@ -2386,6 +2386,12 @@ public:
+           time_t mtime, JSONObj *obj, sync_type_t sync_mode) {
+     RGWUserInfo info;
+ 
++    try {
++      decode_json_obj(uci, obj);
++    } catch (JSONDecoder::err& e) {
++      return -EINVAL;
++    }
++
+     decode_json_obj(info, obj);
+ 
+     RGWUserInfo old_info;
+-- 
+2.8.0.rc3
+

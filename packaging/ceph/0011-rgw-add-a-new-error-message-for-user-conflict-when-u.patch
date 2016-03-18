@@ -1,0 +1,61 @@
+From 2b509cbcbc61c6cfb6517cc0d2a48337cce6cf52 Mon Sep 17 00:00:00 2001
+From: Sangdi <xu.sangdi@h3c>
+Date: Fri, 18 Sep 2015 11:02:07 +0800
+Subject: [PATCH 11/23] rgw: add a new error message for user conflict when
+ using Admin Ops API
+
+Add a new error message to indicate user conflict, which was using the error code for bucket conflict.
+
+Signed-off-by: Sangdi Xu <xu.sangdi@h3c.com>
+(cherry picked from commit f25b67faf47027e99ccf7d56f166ce6de98a7ef7)
+Signed-off-by: Dunrong Huang <riegamaths@gmail.com>
+---
+ src/rgw/rgw_common.h      | 1 +
+ src/rgw/rgw_http_errors.h | 1 +
+ src/rgw/rgw_user.cc       | 5 ++++-
+ 3 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/src/rgw/rgw_common.h b/src/rgw/rgw_common.h
+index edb9775..b288d0c 100644
+--- a/src/rgw/rgw_common.h
++++ b/src/rgw/rgw_common.h
+@@ -138,6 +138,7 @@ using ceph::crypto::MD5;
+ #define ERR_SIGNATURE_NO_MATCH   2027
+ #define ERR_INVALID_ACCESS_KEY   2028
+ #define ERR_MALFORMED_XML        2029
++#define ERR_USER_EXIST           2030
+ #define ERR_USER_SUSPENDED       2100
+ #define ERR_INTERNAL_ERROR       2200
+ 
+diff --git a/src/rgw/rgw_http_errors.h b/src/rgw/rgw_http_errors.h
+index 7621200..3a3ef19 100644
+--- a/src/rgw/rgw_http_errors.h
++++ b/src/rgw/rgw_http_errors.h
+@@ -47,6 +47,7 @@ const static struct rgw_http_errors RGW_HTTP_ERRORS[] = {
+     { ERR_METHOD_NOT_ALLOWED, 405, "MethodNotAllowed" },
+     { ETIMEDOUT, 408, "RequestTimeout" },
+     { EEXIST, 409, "BucketAlreadyExists" },
++    { ERR_USER_EXIST, 409, "UserAlreadyExists" },
+     { ENOTEMPTY, 409, "BucketNotEmpty" },
+     { ERR_PRECONDITION_FAILED, 412, "PreconditionFailed" },
+     { ERANGE, 416, "InvalidRange" },
+diff --git a/src/rgw/rgw_user.cc b/src/rgw/rgw_user.cc
+index 1886bd8..e57c139 100644
+--- a/src/rgw/rgw_user.cc
++++ b/src/rgw/rgw_user.cc
+@@ -2115,8 +2115,11 @@ int RGWUserAdminOp_User::create(RGWRados *store, RGWUserAdminOpState& op_state,
+   Formatter *formatter = flusher.get_formatter();
+ 
+   ret = user.add(op_state, NULL);
+-  if (ret < 0)
++  if (ret < 0) {
++    if (ret == -EEXIST)
++      ret = -ERR_USER_EXIST;
+     return ret;
++  }
+ 
+   ret = user.info(info, NULL);
+   if (ret < 0)
+-- 
+2.8.0.rc3
+

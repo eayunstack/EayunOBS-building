@@ -1,0 +1,282 @@
+From 52fb30ce0c1d2af8661bfe4c6491dd1af2adc826 Mon Sep 17 00:00:00 2001
+From: Yehuda Sadeh <yehuda@inktank.com>
+Date: Wed, 19 Feb 2014 18:00:10 -0800
+Subject: [PATCH 02/23] rgw: support multiple host names
+
+Fixes: #7467
+Allow configuration of multiple domain names. Still support a single
+host name via the rgw_dns_name configurable but can add more names
+through the region params.
+
+Signed-off-by: Yehuda Sadeh <yehuda@inktank.com>
+(cherry picked from commit 90c5869b734abe0393497a6d196b6555fc675514)
+---
+ src/rgw/rgw_common.h    |  1 +
+ src/rgw/rgw_json_enc.cc |  2 ++
+ src/rgw/rgw_main.cc     |  3 +-
+ src/rgw/rgw_rados.h     | 10 ++++--
+ src/rgw/rgw_rest.cc     | 89 ++++++++++++++++++++++++++++++++++++++++++-------
+ src/rgw/rgw_rest.h      |  2 +-
+ src/rgw/rgw_rest_s3.cc  |  4 +--
+ 7 files changed, 93 insertions(+), 18 deletions(-)
+
+diff --git a/src/rgw/rgw_common.h b/src/rgw/rgw_common.h
+index 83799a2..9980a32 100644
+--- a/src/rgw/rgw_common.h
++++ b/src/rgw/rgw_common.h
+@@ -847,6 +847,7 @@ struct req_info {
+   string request_uri;
+   string effective_uri;
+   string request_params;
++  string domain;
+ 
+   req_info(CephContext *cct, RGWEnv *_env);
+   void rebuild_from(req_info& src);
+diff --git a/src/rgw/rgw_json_enc.cc b/src/rgw/rgw_json_enc.cc
+index a198678..614de41 100644
+--- a/src/rgw/rgw_json_enc.cc
++++ b/src/rgw/rgw_json_enc.cc
+@@ -677,6 +677,7 @@ void RGWRegion::dump(Formatter *f) const
+   encode_json("api_name", api_name, f);
+   encode_json("is_master", is_master, f);
+   encode_json("endpoints", endpoints, f);
++  encode_json("hostnames", hostnames, f);
+   encode_json("master_zone", master_zone, f);
+   encode_json_map("zones", zones, f); /* more friendly representation */
+   encode_json_map("placement_targets", placement_targets, f); /* more friendly representation */
+@@ -704,6 +705,7 @@ void RGWRegion::decode_json(JSONObj *obj)
+   JSONDecoder::decode_json("api_name", api_name, obj);
+   JSONDecoder::decode_json("is_master", is_master, obj);
+   JSONDecoder::decode_json("endpoints", endpoints, obj);
++  JSONDecoder::decode_json("hostnames", hostnames, obj);
+   JSONDecoder::decode_json("master_zone", master_zone, obj);
+   JSONDecoder::decode_json("zones", zones, decode_zones, obj);
+   JSONDecoder::decode_json("placement_targets", placement_targets, decode_placement_targets, obj);
+diff --git a/src/rgw/rgw_main.cc b/src/rgw/rgw_main.cc
+index 9614b07..6f2eb38 100644
+--- a/src/rgw/rgw_main.cc
++++ b/src/rgw/rgw_main.cc
+@@ -997,7 +997,6 @@ int main(int argc, const char **argv)
+   rgw_tools_init(g_ceph_context);
+ 
+   rgw_init_resolver();
+-  rgw_rest_init(g_ceph_context);
+   
+   curl_global_init(CURL_GLOBAL_ALL);
+   
+@@ -1012,6 +1011,8 @@ int main(int argc, const char **argv)
+   if (!r)
+     r = rgw_perf_start(g_ceph_context);
+ 
++  rgw_rest_init(g_ceph_context, store->region);
++
+   mutex.Lock();
+   init_timer.cancel_all_events();
+   init_timer.shutdown();
+diff --git a/src/rgw/rgw_rados.h b/src/rgw/rgw_rados.h
+index d811b49..dd06846 100644
+--- a/src/rgw/rgw_rados.h
++++ b/src/rgw/rgw_rados.h
+@@ -951,13 +951,15 @@ struct RGWRegion {
+   map<string, RGWRegionPlacementTarget> placement_targets;
+   string default_placement;
+ 
++  list<string> hostnames;
++
+   CephContext *cct;
+   RGWRados *store;
+ 
+   RGWRegion() : is_master(false), cct(NULL), store(NULL) {}
+ 
+   void encode(bufferlist& bl) const {
+-    ENCODE_START(1, 1, bl);
++    ENCODE_START(2, 1, bl);
+     ::encode(name, bl);
+     ::encode(api_name, bl);
+     ::encode(is_master, bl);
+@@ -966,11 +968,12 @@ struct RGWRegion {
+     ::encode(zones, bl);
+     ::encode(placement_targets, bl);
+     ::encode(default_placement, bl);
++    ::encode(hostnames, bl);
+     ENCODE_FINISH(bl);
+   }
+ 
+   void decode(bufferlist::iterator& bl) {
+-    DECODE_START(1, bl);
++    DECODE_START(2, bl);
+     ::decode(name, bl);
+     ::decode(api_name, bl);
+     ::decode(is_master, bl);
+@@ -979,6 +982,9 @@ struct RGWRegion {
+     ::decode(zones, bl);
+     ::decode(placement_targets, bl);
+     ::decode(default_placement, bl);
++    if (struct_v >= 2) {
++      ::decode(hostnames, bl);
++    }
+     DECODE_FINISH(bl);
+   }
+ 
+diff --git a/src/rgw/rgw_rest.cc b/src/rgw/rgw_rest.cc
+index b74002d..9a815a8 100644
+--- a/src/rgw/rgw_rest.cc
++++ b/src/rgw/rgw_rest.cc
+@@ -136,7 +136,9 @@ string camelcase_dash_http_attr(const string& orig)
+   return string(buf);
+ }
+ 
+-void rgw_rest_init(CephContext *cct)
++static list<string> hostnames_list;
++
++void rgw_rest_init(CephContext *cct, RGWRegion& region)
+ {
+   for (struct rgw_http_attr *attr = rgw_to_http_attr_list; attr->rgw_attr; attr++) {
+     rgw_to_http_attrs[attr->rgw_attr] = attr->http_attr;
+@@ -165,6 +167,58 @@ void rgw_rest_init(CephContext *cct)
+   for (const struct rgw_http_status_code *h = http_codes; h->code; h++) {
+     http_status_names[h->code] = h->name;
+   }
++
++  /* avoid duplicate hostnames in hostnames list */
++  map<string, bool> hostnames_map;
++  if (!cct->_conf->rgw_dns_name.empty()) {
++    hostnames_map[cct->_conf->rgw_dns_name] = true;
++  }
++  for (list<string>::iterator iter = region.hostnames.begin(); iter != region.hostnames.end(); ++iter) {
++    hostnames_map[*iter] = true;
++  }
++
++  for (map<string, bool>::iterator iter = hostnames_map.begin(); iter != hostnames_map.end(); ++iter) {
++    hostnames_list.push_back(iter->first);
++  }
++}
++
++static bool str_ends_with(const string& s, const string& suffix, size_t *pos)
++{
++  size_t len = suffix.size();
++  if (len > (size_t)s.size()) {
++    return false;
++  }
++
++  ssize_t p = s.size() - len;
++  if (pos) {
++    *pos = p;
++  }
++
++  return s.compare(p, len, suffix) == 0;
++}
++
++static bool rgw_find_host_in_domains(const string& host, string *domain, string *subdomain)
++{
++  list<string>::iterator iter;
++  for (iter = hostnames_list.begin(); iter != hostnames_list.end(); ++iter) {
++    size_t pos;
++    if (!str_ends_with(host, *iter, &pos))
++      continue;
++
++    *domain = host.substr(pos);
++    if (pos == 0) {
++      subdomain->clear();
++    } else {
++      if (host[pos - 1] != '.') {
++        continue;
++      }
++
++      *domain = host.substr(pos);
++      *subdomain = host.substr(0, pos - 1);
++    }
++    return true;
++  }
++  return false;
+ }
+ 
+ static void dump_status(struct req_state *s, const char *status, const char *status_name)
+@@ -1191,34 +1245,45 @@ int RGWREST::preprocess(struct req_state *s, RGWClientIO *cio)
+   req_info& info = s->info;
+ 
+   s->cio = cio;
+-  if (g_conf->rgw_dns_name.length() && info.host) {
++  if (info.host) {
+     string h(s->info.host);
+ 
+-    ldout(s->cct, 10) << "host=" << s->info.host << " rgw_dns_name=" << g_conf->rgw_dns_name << dendl;
+-    int pos = h.find(g_conf->rgw_dns_name);
++    ldout(s->cct, 10) << "host=" << s->info.host << dendl;
++    string domain;
++    string subdomain;
++    bool in_hosted_domain = rgw_find_host_in_domains(h, &domain, &subdomain);
++    ldout(s->cct, 20) << "subdomain=" << subdomain << " domain=" << domain << " in_hosted_domain=" << in_hosted_domain << dendl;
+ 
+-    if (g_conf->rgw_resolve_cname && pos < 0) {
++    if (g_conf->rgw_resolve_cname && !in_hosted_domain) {
+       string cname;
+       bool found;
+       int r = rgw_resolver->resolve_cname(h, cname, &found);
+       if (r < 0) {
+-	dout(0) << "WARNING: rgw_resolver->resolve_cname() returned r=" << r << dendl;
++	ldout(s->cct, 0) << "WARNING: rgw_resolver->resolve_cname() returned r=" << r << dendl;
+       }
+       if (found) {
+-        dout(0) << "resolved host cname " << h << " -> " << cname << dendl;
+-	h = cname;
+-        pos = h.find(g_conf->rgw_dns_name);
++        ldout(s->cct, 5) << "resolved host cname " << h << " -> " << cname << dendl;
++        in_hosted_domain = rgw_find_host_in_domains(cname, &domain, &subdomain);
++        ldout(s->cct, 20) << "subdomain=" << subdomain << " domain=" << domain << " in_hosted_domain=" << in_hosted_domain << dendl;
+       }
+     }
+ 
+-    if (pos > 0 && h[pos - 1] == '.') {
++    if (in_hosted_domain && !subdomain.empty()) {
+       string encoded_bucket = "/";
+-      encoded_bucket.append(h.substr(0, pos-1));
++      encoded_bucket.append(subdomain);
+       if (s->info.request_uri[0] != '/')
+-	encoded_bucket.append("/'");
++        encoded_bucket.append("/'");
+       encoded_bucket.append(s->info.request_uri);
+       s->info.request_uri = encoded_bucket;
+     }
++
++    if (!domain.empty()) {
++      s->info.domain = domain;
++    }
++  }
++
++  if (s->info.domain.empty()) {
++    s->info.domain = s->cct->_conf->rgw_dns_name;
+   }
+ 
+   url_decode(s->info.request_uri, s->decoded_uri);
+diff --git a/src/rgw/rgw_rest.h b/src/rgw/rgw_rest.h
+index 38ffd8c..c8ed440 100644
+--- a/src/rgw/rgw_rest.h
++++ b/src/rgw/rgw_rest.h
+@@ -10,7 +10,7 @@
+ 
+ extern std::map<std::string, std::string> rgw_to_http_attrs;
+ 
+-extern void rgw_rest_init(CephContext *cct);
++extern void rgw_rest_init(CephContext *cct, RGWRegion& region);
+ 
+ extern void rgw_flush_formatter_and_reset(struct req_state *s,
+ 					 ceph::Formatter *formatter);
+diff --git a/src/rgw/rgw_rest_s3.cc b/src/rgw/rgw_rest_s3.cc
+index c7961f4..33c6643 100644
+--- a/src/rgw/rgw_rest_s3.cc
++++ b/src/rgw/rgw_rest_s3.cc
+@@ -1497,8 +1497,8 @@ void RGWCompleteMultipart_ObjStore_S3::send_response()
+     dump_start(s);
+     s->formatter->open_object_section_in_ns("CompleteMultipartUploadResult",
+ 			  "http://s3.amazonaws.com/doc/2006-03-01/");
+-    if (g_conf->rgw_dns_name.length())
+-      s->formatter->dump_format("Location", "%s.%s", s->bucket_name_str.c_str(), g_conf->rgw_dns_name.c_str());
++    if (s->info.domain.length())
++      s->formatter->dump_format("Location", "%s.%s", s->bucket_name_str.c_str(), s->info.domain.c_str());
+     s->formatter->dump_string("Bucket", s->bucket_name_str);
+     s->formatter->dump_string("Key", s->object);
+     s->formatter->dump_string("ETag", etag);
+-- 
+2.8.0.rc3
+

@@ -1,0 +1,43 @@
+From 688f4b50e75e2df5486f6a3dfef5fc93315193ba Mon Sep 17 00:00:00 2001
+From: Yehuda Sadeh <yehuda@redhat.com>
+Date: Fri, 25 Sep 2015 10:44:40 -0700
+Subject: [PATCH 20/23] rgw: set default value for env->get() call
+
+Fixes: #13239
+
+This fixes a regression introduced at commit abe4ec293d08b0314bf5c081ace2456073f3a22c.
+The host var is a string, env->get() returns a char pointer, shouldn't
+pass in NULL.
+
+Signed-off-by: Yehuda Sadeh <yehuda@redhat.com>
+(cherry picked from commit 3f000421c69affc5fa94fec743117d51f16c48f0)
+Signed-off-by: Dunrong Huang <riegamaths@gmail.com>
+---
+ src/rgw/rgw_common.cc | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/rgw/rgw_common.cc b/src/rgw/rgw_common.cc
+index 11abe70..9c5f23d 100644
+--- a/src/rgw/rgw_common.cc
++++ b/src/rgw/rgw_common.cc
+@@ -94,7 +94,7 @@ is_err() const
+ 
+ 
+ req_info::req_info(CephContext *cct, class RGWEnv *e) : env(e) {
+-  method = env->get("REQUEST_METHOD");
++  method = env->get("REQUEST_METHOD", "");
+   script_uri = env->get("SCRIPT_URI", cct->_conf->rgw_script_uri.c_str());
+   request_uri = env->get("REQUEST_URI", cct->_conf->rgw_request_uri.c_str());
+   int pos = request_uri.find('?');
+@@ -104,7 +104,7 @@ req_info::req_info(CephContext *cct, class RGWEnv *e) : env(e) {
+   } else {
+     request_params = env->get("QUERY_STRING", "");
+   }
+-  host = env->get("HTTP_HOST");
++  host = env->get("HTTP_HOST", "");
+ 
+   // strip off any trailing :port from host (added by CrossFTP and maybe others)
+   size_t colon_offset = host.find_last_of(':');
+-- 
+2.8.0.rc3
+
