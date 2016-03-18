@@ -1,0 +1,73 @@
+From 03d768617a4624c67d9da985b269babf0e5441d9 Mon Sep 17 00:00:00 2001
+From: clever215 <wu.kongming@h3c.com>
+Date: Wed, 25 Nov 2015 11:31:48 -0500
+Subject: [PATCH 17/23] rgw: add an inspection to the field of type when
+ assigning user caps
+
+Bug #13096
+
+This modification adds the check to the field of type of a user's capality while previous versions set it any value. i.e. we limit the option of types to the 9 certain values, which are "users|buckets|metadata|usage|zone|bilog|mdlog|datalog|ops These 9 choosens are found in ceph documents and in source codes.
+
+Signed-off-by: Kongming Wu <wu.kongming@h3c.com>
+(cherry picked from commit 13a12a5364dc4fa0623bfd543c081a616b32682d)
+Signed-off-by: Dunrong Huang <riegamaths@gmail.com>
+---
+ src/rgw/rgw_common.cc | 22 +++++++++++++++++++++-
+ src/rgw/rgw_common.h  |  1 +
+ 2 files changed, 22 insertions(+), 1 deletion(-)
+
+diff --git a/src/rgw/rgw_common.cc b/src/rgw/rgw_common.cc
+index 11abe70..f5eab2d 100644
+--- a/src/rgw/rgw_common.cc
++++ b/src/rgw/rgw_common.cc
+@@ -907,7 +907,7 @@ int RGWUserCaps::get_cap(const string& cap, string& type, uint32_t *pperm)
+     trim_whitespace(cap.substr(0, pos), type);
+   }
+ 
+-  if (type.size() == 0)
++  if (!is_valid_cap_type(type))
+     return -EINVAL;
+ 
+   string cap_perm;
+@@ -1067,6 +1067,26 @@ int RGWUserCaps::check_cap(const string& cap, uint32_t perm)
+   return 0;
+ }
+ 
++bool RGWUserCaps::is_valid_cap_type(const string& tp)
++{
++  static const char *cap_type[] = { "users",
++                                    "buckets",
++                                    "metadata",
++                                    "usage",
++                                    "zone",
++                                    "bilog",
++                                    "mdlog",
++                                    "datalog",
++                                    "opstate" };
++
++  for (unsigned int i = 0; i < sizeof(cap_type) / sizeof(char *); ++i) {
++    if (tp.compare(cap_type[i]) == 0) {
++      return true;
++    }
++  }
++
++  return false;
++}
+ 
+ static struct rgw_name_to_flag op_type_mapping[] = { {"*",  RGW_OP_TYPE_ALL},
+                   {"read",  RGW_OP_TYPE_READ},
+diff --git a/src/rgw/rgw_common.h b/src/rgw/rgw_common.h
+index 3bba227..99cf18a 100644
+--- a/src/rgw/rgw_common.h
++++ b/src/rgw/rgw_common.h
+@@ -414,6 +414,7 @@ public:
+      DECODE_FINISH(bl);
+   }
+   int check_cap(const string& cap, uint32_t perm);
++  bool is_valid_cap_type(const string& tp);
+   void dump(Formatter *f) const;
+   void dump(Formatter *f, const char *name) const;
+ 
+-- 
+2.8.0.rc3
+

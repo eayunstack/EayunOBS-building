@@ -1,0 +1,54 @@
+From 6224e90e16466f93f75a93f351ae650c5d3ef811 Mon Sep 17 00:00:00 2001
+From: root <root@gluster5.gfs.fsw.fujitsu.com>
+Date: Tue, 9 Feb 2016 12:03:24 -0800
+Subject: [PATCH 22/23] rgw: user quota may not adjust on bucket removal
+
+Description:
+If the user/admin removes a bucket using --force/--purge-objects options with s3cmd/radosgw-admin respectively, the user stats will continue to reflect the deleted objects for quota purposes, and there seems to be no way to reset them. User stats need to be sync'ed prior to bucket removal.
+
+Solution:
+Sync user stats before removing a bucket.
+
+Fixes: #14507
+Signed-off-by: Edward Yang eyang@us.fujitsu.com
+(cherry picked from commit 06507992e3fad837c4667f467d59fc026a2ca0e8)
+---
+ src/rgw/rgw_bucket.cc | 5 +++++
+ src/rgw/rgw_op.cc     | 5 +++++
+ 2 files changed, 10 insertions(+)
+
+diff --git a/src/rgw/rgw_bucket.cc b/src/rgw/rgw_bucket.cc
+index ee1d844..da1e709 100644
+--- a/src/rgw/rgw_bucket.cc
++++ b/src/rgw/rgw_bucket.cc
+@@ -391,6 +391,11 @@ int rgw_remove_bucket(RGWRados *store, const string& bucket_owner, rgw_bucket& b
+     }
+   }
+ 
++  ret = rgw_bucket_sync_user_stats(store, bucket.name);
++  if ( ret < 0) {
++     dout(1) << "WARNING: failed sync user stats before bucket delete. ret=" <<  ret << dendl;
++  }
++
+   RGWObjVersionTracker objv_tracker;
+ 
+   ret = store->delete_bucket(bucket, objv_tracker);
+diff --git a/src/rgw/rgw_op.cc b/src/rgw/rgw_op.cc
+index 97d579f..3b29b04 100644
+--- a/src/rgw/rgw_op.cc
++++ b/src/rgw/rgw_op.cc
+@@ -1325,6 +1325,11 @@ void RGWDeleteBucket::execute()
+     }
+   }
+ 
++  ret = rgw_bucket_sync_user_stats(store, s->user.user_id, s->bucket);
++  if ( ret < 0) {
++     ldout(s->cct, 1) << "WARNING: failed to sync user stats before bucket delete: ret= " << ret << dendl;
++  }
++
+   ret = store->delete_bucket(s->bucket, ot);
+ 
+   if (ret == 0) {
+-- 
+2.8.0.rc3
+

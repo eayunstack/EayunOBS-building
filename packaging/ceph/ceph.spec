@@ -15,18 +15,43 @@ Name:		ceph
 Version:	0.80.7
 # This should always be lower than 2, we do not want to update over base rhel.
 # Please use 0.x if updating instead.
-Release:	0.4%{?dist_eayunobs}
+Release:	0.5%{?dist_eayunobs}
 Epoch:		1
 Summary:	User space components of the Ceph file system
 License:	GPLv2
 Group:		System Environment/Base
 URL:		http://ceph.com/
 Source0:	http://ceph.com/download/%{name}-%{version}.tar.bz2
-Patch0:		ceph-google-gperftools.patch
-Patch1:		ceph-no-format-security.patch
-Patch2:		ceph-common-do-not-unlock-rwlock-on-destruction.patch
-Patch3:		ceph-remove-rados-py-destructor.patch
-Patch4:		ceph-call-rados-shutdown-explicitly.patch
+Patch0000:	ceph-google-gperftools.patch
+Patch0001:	ceph-no-format-security.patch
+Patch0002:	ceph-common-do-not-unlock-rwlock-on-destruction.patch
+Patch0003:	ceph-remove-rados-py-destructor.patch
+Patch0004:	ceph-call-rados-shutdown-explicitly.patch
+
+Patch0005:  0001-rgw-avoid-using-slashes-for-generated-secret-keys.patch
+Patch0006:  0002-rgw-support-multiple-host-names.patch
+Patch0007:  0003-rgw-fix-empty-json-response-when-getting-user-quota.patch
+Patch0008:  0004-rgw-remove-trailing-port-from-host-for-purposes-of-s.patch
+Patch0009:  0005-rgw-admin-ops-create-user-API-can-not-determine-exis.patch
+Patch0010:  0006-rgw-do-not-abort-when-user-passed-bad-parameters-to-.patch
+Patch0011:  0007-rgw-do-not-abort-when-user-passed-bad-parameters-to-.patch
+Patch0012:  0008-rgw-return-SignatureDoesNotMatch-instead-of-AccessDe.patch
+Patch0013:  0009-rgw-return-InvalidAccessKeyId-instead-of-AccessDenie.patch
+Patch0014:  0010-rgw-fail-if-parts-not-specified-on-complete-multipar.patch
+Patch0015:  0011-rgw-add-a-new-error-message-for-user-conflict-when-u.patch
+Patch0016:  0012-rgw-clarify-the-error-message-when-trying-to-create-.patch
+Patch0017:  0013-rgw-add-a-new-error-code-for-email-conflict.patch
+Patch0018:  0014-rgw-add-a-new-error-code-for-key-conflict.patch
+Patch0019:  0015-rgw-add-a-new-error-code-for-invalid-secret-key.patch
+Patch0020:  0016-rgw-add-a-new-error-code-for-invalid-key-type.patch
+Patch0021:  0017-rgw-add-an-inspection-to-the-field-of-type-when-assi.patch
+Patch0022:  0018-rgw-add-a-new-error-code-for-invalid-admin-capabilit.patch
+Patch0023:  0019-rgw-fix-build-issue.patch
+Patch0024:  0020-rgw-set-default-value-for-env-get-call.patch
+Patch0025:  0021-utime.h-fix-timezone-issue-in-round_to_-funcs.patch
+Patch0026:  0022-rgw-user-quota-may-not-adjust-on-bucket-removal.patch
+Patch0027:  0023-rgw-fix-bad-origin-in-CORS-request-would-cause-the-r.patch
+
 Requires:	librbd1 = %{epoch}:%{version}
 Requires:	librados2 = %{epoch}:%{version}
 Requires:	libcephfs1 = %{epoch}:%{version}
@@ -396,11 +421,34 @@ python-cephfs instead.
 #################################################################################
 %prep
 %setup -q
-%patch0 -p1
-%patch1 -p1
-%patch2 -p1
-%patch3 -p1
-%patch4 -p1
+%patch0000 -p1
+%patch0001 -p1
+%patch0002 -p1
+%patch0003 -p1
+%patch0004 -p1
+%patch0005 -p1
+%patch0006 -p1
+%patch0007 -p1
+%patch0008 -p1
+%patch0009 -p1
+%patch0010 -p1
+%patch0011 -p1
+%patch0012 -p1
+%patch0013 -p1
+%patch0014 -p1
+%patch0015 -p1
+%patch0016 -p1
+%patch0017 -p1
+%patch0018 -p1
+%patch0019 -p1
+%patch0020 -p1
+%patch0021 -p1
+%patch0022 -p1
+%patch0023 -p1
+%patch0024 -p1
+%patch0025 -p1
+%patch0026 -p1
+%patch0027 -p1
 
 %build
 # Find jni.h
@@ -888,6 +936,31 @@ ln -sf %{_libdir}/librbd.so.1 /usr/lib64/qemu/librbd.so.1
 %files -n python-ceph-compat
 
 %changelog
+* Fri Mar 18 2016 Zhao Chao <chao.zhao@eayun.com> - 1:0.80.7-0.5.eayunobs.1.0
+- add 0001-rgw-avoid-using-slashes-for-generated-secret-keys.patch
+- add 0002-rgw-support-multiple-host-names.patch
+- add 0003-rgw-fix-empty-json-response-when-getting-user-quota.patch
+- add 0004-rgw-remove-trailing-port-from-host-for-purposes-of-s.patch
+- add 0005-rgw-admin-ops-create-user-API-can-not-determine-exis.patch
+- add 0006-rgw-do-not-abort-when-user-passed-bad-parameters-to-.patch
+- add 0007-rgw-do-not-abort-when-user-passed-bad-parameters-to-.patch
+- add 0008-rgw-return-SignatureDoesNotMatch-instead-of-AccessDe.patch
+- add 0009-rgw-return-InvalidAccessKeyId-instead-of-AccessDenie.patch
+- add 0010-rgw-fail-if-parts-not-specified-on-complete-multipar.patch
+- add 0011-rgw-add-a-new-error-message-for-user-conflict-when-u.patch
+- add 0012-rgw-clarify-the-error-message-when-trying-to-create-.patch
+- add 0013-rgw-add-a-new-error-code-for-email-conflict.patch
+- add 0014-rgw-add-a-new-error-code-for-key-conflict.patch
+- add 0015-rgw-add-a-new-error-code-for-invalid-secret-key.patch
+- add 0016-rgw-add-a-new-error-code-for-invalid-key-type.patch
+- add 0017-rgw-add-an-inspection-to-the-field-of-type-when-assi.patch
+- add 0018-rgw-add-a-new-error-code-for-invalid-admin-capabilit.patch
+- add 0019-rgw-fix-build-issue.patch
+- add 0020-rgw-set-default-value-for-env-get-call.patch
+- add 0021-utime.h-fix-timezone-issue-in-round_to_-funcs.patch
+- add 0022-rgw-user-quota-may-not-adjust-on-bucket-removal.patch
+- add 0023-rgw-fix-bad-origin-in-CORS-request-would-cause-the-r.patch
+
 * Tue Jan 20 2015 Boris Ranto <branto@redhat.com> - 1:0.80.7-0.4
 - Revert the deprecation changes
 - Remove release in version comparisons, base rhel packages shall update epel

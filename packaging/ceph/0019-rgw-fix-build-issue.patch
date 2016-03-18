@@ -1,0 +1,39 @@
+From 01abb9134eee041c903ce8b5be1d7485417d4955 Mon Sep 17 00:00:00 2001
+From: isyippee <yippee_liu@163.com>
+Date: Wed, 20 Jan 2016 15:14:15 +0800
+Subject: [PATCH 19/23] rgw: fix build issue
+
+rgw/rgw_user.cc: In member function 'virtual int RGWUserMetadataHandler::put(RGWRados*, std::string&, RGWObjVersionTracker&, time_t, JSONObj*, RGWMetadataHandler::sync_type_t)':
+rgw/rgw_user.cc:2390:23: error: 'uci' was not declared in this scope
+       decode_json_obj(uci, obj);
+                       ^
+
+this bug is introduced by commit: 98e9a18e
+
+Signed-off-by: isyippee <yippee_liu@163.com>
+---
+ src/rgw/rgw_user.cc | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/src/rgw/rgw_user.cc b/src/rgw/rgw_user.cc
+index 1886bd8..da4b90b 100644
+--- a/src/rgw/rgw_user.cc
++++ b/src/rgw/rgw_user.cc
+@@ -2387,13 +2387,11 @@ public:
+     RGWUserInfo info;
+ 
+     try {
+-      decode_json_obj(uci, obj);
++      decode_json_obj(info, obj);
+     } catch (JSONDecoder::err& e) {
+       return -EINVAL;
+     }
+ 
+-    decode_json_obj(info, obj);
+-
+     RGWUserInfo old_info;
+     time_t orig_mtime;
+     int ret = rgw_get_user_info_by_uid(store, entry, old_info, &objv_tracker, &orig_mtime);
+-- 
+2.8.0.rc3
+

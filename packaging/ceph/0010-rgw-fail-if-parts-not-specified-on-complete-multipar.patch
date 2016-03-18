@@ -1,0 +1,85 @@
+From 6d3e3e62527fb1345643deff5b696e8d802f4e2a Mon Sep 17 00:00:00 2001
+From: Yehuda Sadeh <yehuda@redhat.com>
+Date: Mon, 20 Apr 2015 14:47:16 -0700
+Subject: [PATCH 10/23] rgw: fail if parts not specified on
+ complete-multipart-upload
+
+Fixes: #11435
+
+A complete multipart upload should not succeed if parts were not
+specified. Also, adjust return codes.
+
+Signed-off-by: Yehuda Sadeh <yehuda@redhat.com>
+(cherry picked from commit 6ee4f649735d549fc4c032414b8a94d9e822a349)
+Signed-off-by: Dunrong Huang <riegamaths@gmail.com>
+
+Conflicts:
+	src/rgw/rgw_op.cc
+---
+ src/rgw/rgw_common.h      |  1 +
+ src/rgw/rgw_http_errors.h |  1 +
+ src/rgw/rgw_op.cc         | 12 ++++++------
+ 3 files changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/src/rgw/rgw_common.h b/src/rgw/rgw_common.h
+index 044e639..edb9775 100644
+--- a/src/rgw/rgw_common.h
++++ b/src/rgw/rgw_common.h
+@@ -137,6 +137,7 @@ using ceph::crypto::MD5;
+ #define ERR_QUOTA_EXCEEDED       2026
+ #define ERR_SIGNATURE_NO_MATCH   2027
+ #define ERR_INVALID_ACCESS_KEY   2028
++#define ERR_MALFORMED_XML        2029
+ #define ERR_USER_SUSPENDED       2100
+ #define ERR_INTERNAL_ERROR       2200
+ 
+diff --git a/src/rgw/rgw_http_errors.h b/src/rgw/rgw_http_errors.h
+index d450af7..7621200 100644
+--- a/src/rgw/rgw_http_errors.h
++++ b/src/rgw/rgw_http_errors.h
+@@ -31,6 +31,7 @@ const static struct rgw_http_errors RGW_HTTP_ERRORS[] = {
+     { ERR_TOO_LARGE, 400, "EntityTooLarge" },
+     { ERR_TOO_SMALL, 400, "EntityTooSmall" },
+     { ERR_TOO_MANY_BUCKETS, 400, "TooManyBuckets" },
++    { ERR_MALFORMED_XML, 400, "MalformedXML" },
+     { ERR_LENGTH_REQUIRED, 411, "MissingContentLength" },
+     { EACCES, 403, "AccessDenied" },
+     { EPERM, 403, "AccessDenied" },
+diff --git a/src/rgw/rgw_op.cc b/src/rgw/rgw_op.cc
+index 7694748..97d579f 100644
+--- a/src/rgw/rgw_op.cc
++++ b/src/rgw/rgw_op.cc
+@@ -2717,24 +2717,24 @@ void RGWCompleteMultipart::execute()
+   if (ret < 0)
+     return;
+ 
+-  if (!data) {
+-    ret = -EINVAL;
++  if (!data || !len) {
++    ret = -ERR_MALFORMED_XML;
+     return;
+   }
+ 
+   if (!parser.init()) {
+-    ret = -EINVAL;
++    ret = -EIO;
+     return;
+   }
+ 
+   if (!parser.parse(data, len, 1)) {
+-    ret = -EINVAL;
++    ret = -ERR_MALFORMED_XML;
+     return;
+   }
+ 
+   parts = static_cast<RGWMultiCompleteUpload *>(parser.find_first("CompleteMultipartUpload"));
+-  if (!parts) {
+-    ret = -EINVAL;
++  if (!parts || parts->parts.size() == 0) {
++    ret = -ERR_MALFORMED_XML;
+     return;
+   }
+ 
+-- 
+2.8.0.rc3
+

@@ -1,0 +1,90 @@
+From fac519315c0ced65473fcb2f149aa4e070a48606 Mon Sep 17 00:00:00 2001
+From: Dunrong Huang <riegamaths@gmail.com>
+Date: Wed, 23 Dec 2015 22:19:36 +0800
+Subject: [PATCH 18/23] rgw: add a new error code for invalid admin capability
+
+From http://docs.ceph.com/docs/master/radosgw/adminops/ when attempt to
+grant invalid admin capability, rgw should return InvalidCap rather than
+InvalidArgument.
+
+Signed-off-by: Dunrong Huang <riegamaths@gmail.com>
+(cherry picked from commit 8ea80a0ee3b857df3910d29de179182747a86816)
+Signed-off-by: Dunrong Huang <riegamaths@gmail.com>
+---
+ src/rgw/rgw_common.cc     | 2 +-
+ src/rgw/rgw_common.h      | 1 +
+ src/rgw/rgw_http_errors.h | 1 +
+ src/rgw/rgw_user.cc       | 6 +++---
+ 4 files changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/src/rgw/rgw_common.cc b/src/rgw/rgw_common.cc
+index f5eab2d..0969813 100644
+--- a/src/rgw/rgw_common.cc
++++ b/src/rgw/rgw_common.cc
+@@ -908,7 +908,7 @@ int RGWUserCaps::get_cap(const string& cap, string& type, uint32_t *pperm)
+   }
+ 
+   if (!is_valid_cap_type(type))
+-    return -EINVAL;
++    return -ERR_INVALID_CAP;
+ 
+   string cap_perm;
+   uint32_t perm = 0;
+diff --git a/src/rgw/rgw_common.h b/src/rgw/rgw_common.h
+index 99cf18a..50a40c4 100644
+--- a/src/rgw/rgw_common.h
++++ b/src/rgw/rgw_common.h
+@@ -143,6 +143,7 @@ using ceph::crypto::MD5;
+ #define ERR_KEY_EXIST            2033
+ #define ERR_INVALID_SECRET_KEY   2034
+ #define ERR_INVALID_KEY_TYPE     2035
++#define ERR_INVALID_CAP          2036
+ #define ERR_USER_SUSPENDED       2100
+ #define ERR_INTERNAL_ERROR       2200
+ 
+diff --git a/src/rgw/rgw_http_errors.h b/src/rgw/rgw_http_errors.h
+index 52de232..45a8018 100644
+--- a/src/rgw/rgw_http_errors.h
++++ b/src/rgw/rgw_http_errors.h
+@@ -52,6 +52,7 @@ const static struct rgw_http_errors RGW_HTTP_ERRORS[] = {
+     { ERR_KEY_EXIST, 409, "KeyExists"},
+     { ERR_INVALID_SECRET_KEY, 400, "InvalidSecretKey"},
+     { ERR_INVALID_KEY_TYPE, 400, "InvalidKeyType"},
++    { ERR_INVALID_CAP, 400, "InvalidCapability"},
+     { ENOTEMPTY, 409, "BucketNotEmpty" },
+     { ERR_PRECONDITION_FAILED, 412, "PreconditionFailed" },
+     { ERANGE, 416, "InvalidRange" },
+diff --git a/src/rgw/rgw_user.cc b/src/rgw/rgw_user.cc
+index 8f6021f..280bb5d 100644
+--- a/src/rgw/rgw_user.cc
++++ b/src/rgw/rgw_user.cc
+@@ -1401,7 +1401,7 @@ int RGWUserCapPool::init(RGWUserAdminOpState& op_state)
+   caps = op_state.get_caps_obj();
+   if (!caps) {
+     caps_allowed = false;
+-    return -EINVAL;
++    return -ERR_INVALID_CAP;
+   }
+ 
+   caps_allowed = true;
+@@ -1431,7 +1431,7 @@ int RGWUserCapPool::add(RGWUserAdminOpState& op_state, std::string *err_msg, boo
+ 
+   if (caps_str.empty()) {
+     set_err_msg(err_msg, "empty user caps");
+-    return -EINVAL;
++    return -ERR_INVALID_CAP;
+   }
+ 
+   int r = caps->add_from_string(caps_str);
+@@ -1472,7 +1472,7 @@ int RGWUserCapPool::remove(RGWUserAdminOpState& op_state, std::string *err_msg,
+ 
+   if (caps_str.empty()) {
+     set_err_msg(err_msg, "empty user caps");
+-    return -EINVAL;
++    return -ERR_INVALID_CAP;
+   }
+ 
+   int r = caps->remove_from_string(caps_str);
+-- 
+2.8.0.rc3
+

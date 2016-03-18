@@ -1,0 +1,91 @@
+From 92f2b98f00e6e070bb4050a6b30dec00cb744026 Mon Sep 17 00:00:00 2001
+From: Dunrong Huang <riegamaths@gmail.com>
+Date: Wed, 23 Dec 2015 22:00:05 +0800
+Subject: [PATCH 14/23] rgw: add a new error code for key conflict
+
+From http://docs.ceph.com/docs/master/radosgw/adminops/ when provided key
+exists, rgw should return KeyExists rather than BucketAlreadyExists.
+
+Signed-off-by: Dunrong Huang <riegamaths@gmail.com>
+(cherry picked from commit e5d32b0ff2cce42c1f1138f834d5454da626a65a)
+Signed-off-by: Dunrong Huang <riegamaths@gmail.com>
+---
+ src/rgw/rgw_common.h      |  1 +
+ src/rgw/rgw_http_errors.h |  1 +
+ src/rgw/rgw_user.cc       | 10 +++++-----
+ 3 files changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/src/rgw/rgw_common.h b/src/rgw/rgw_common.h
+index 86f5375..00d451a 100644
+--- a/src/rgw/rgw_common.h
++++ b/src/rgw/rgw_common.h
+@@ -140,6 +140,7 @@ using ceph::crypto::MD5;
+ #define ERR_MALFORMED_XML        2029
+ #define ERR_USER_EXIST           2030
+ #define ERR_EMAIL_EXIST          2032
++#define ERR_KEY_EXIST            2033
+ #define ERR_USER_SUSPENDED       2100
+ #define ERR_INTERNAL_ERROR       2200
+ 
+diff --git a/src/rgw/rgw_http_errors.h b/src/rgw/rgw_http_errors.h
+index a456e72..077eadd 100644
+--- a/src/rgw/rgw_http_errors.h
++++ b/src/rgw/rgw_http_errors.h
+@@ -49,6 +49,7 @@ const static struct rgw_http_errors RGW_HTTP_ERRORS[] = {
+     { EEXIST, 409, "BucketAlreadyExists" },
+     { ERR_USER_EXIST, 409, "UserAlreadyExists" },
+     { ERR_EMAIL_EXIST, 409, "EmailExists" },
++    { ERR_KEY_EXIST, 409, "KeyExists"},
+     { ENOTEMPTY, 409, "BucketNotEmpty" },
+     { ERR_PRECONDITION_FAILED, 412, "PreconditionFailed" },
+     { ERANGE, 416, "InvalidRange" },
+diff --git a/src/rgw/rgw_user.cc b/src/rgw/rgw_user.cc
+index 0769fa1..eec1b6d 100644
+--- a/src/rgw/rgw_user.cc
++++ b/src/rgw/rgw_user.cc
+@@ -784,7 +784,7 @@ int RGWAccessKeyPool::generate_key(RGWUserAdminOpState& op_state, std::string *e
+ 
+   if (op_state.has_existing_key()) {
+     set_err_msg(err_msg, "cannot create existing key");
+-    return -EEXIST;
++    return -ERR_KEY_EXIST;
+   }
+ 
+   if (!gen_access) {
+@@ -796,13 +796,13 @@ int RGWAccessKeyPool::generate_key(RGWUserAdminOpState& op_state, std::string *e
+     case KEY_TYPE_SWIFT:
+       if (rgw_get_user_info_by_swift(store, id, duplicate_check) >= 0) {
+         set_err_msg(err_msg, "existing swift key in RGW system:" + id);
+-        return -EEXIST;
++        return -ERR_KEY_EXIST;
+       }
+       break;
+     case KEY_TYPE_S3:
+       if (rgw_get_user_info_by_access_key(store, id, duplicate_check) >= 0) {
+         set_err_msg(err_msg, "existing S3 key in RGW system:" + id);
+-        return -EEXIST;
++        return -ERR_KEY_EXIST;
+       }
+     }
+   }
+@@ -855,7 +855,7 @@ int RGWAccessKeyPool::generate_key(RGWUserAdminOpState& op_state, std::string *e
+     // check that the access key doesn't exist
+     if (rgw_get_user_info_by_swift(store, id, duplicate_check) >= 0) {
+       set_err_msg(err_msg, "cannot create existing swift key");
+-      return -EEXIST;
++      return -ERR_KEY_EXIST;
+     }
+   }
+ 
+@@ -1713,7 +1713,7 @@ int RGWUser::execute_add(RGWUserAdminOpState& op_state, std::string *err_msg)
+       ret = -ERR_EMAIL_EXIST;
+     } else if (op_state.found_by_key) {
+       set_err_msg(err_msg, "duplicate key provided");
+-      ret = -EEXIST;
++      ret = -ERR_KEY_EXIST;
+     } else {
+       set_err_msg(err_msg, "user: " + op_state.user_id + " exists");
+       ret = -EEXIST;
+-- 
+2.8.0.rc3
+
