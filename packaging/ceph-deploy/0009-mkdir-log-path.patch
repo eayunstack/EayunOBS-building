@@ -1,0 +1,25 @@
+From 0a4b4a6d8276ff775bdc11fb38b6c44979210737 Mon Sep 17 00:00:00 2001
+From: isyippee <yippee_liu@163.com>
+Date: Wed, 16 Dec 2015 10:19:02 +0800
+Subject: [PATCH 09/14] mkdir log path
+
+Signed-off-by: isyippee <yippee_liu@163.com>
+---
+ ceph_deploy/eayunrgw.py | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/ceph_deploy/eayunrgw.py b/ceph_deploy/eayunrgw.py
+index b51e13a..b8cff40 100644
+--- a/ceph_deploy/eayunrgw.py
++++ b/ceph_deploy/eayunrgw.py
+@@ -173,6 +173,7 @@ def config_http(distro, conn, gw_name):
+     if not stdout:
+         remoto.process.run(conn, ['yum', 'install', '-y', 'httpd', ], timeout=0)
+     remoto.process.run(conn, ['chown', 'apache:apache', '/var/run/ceph', ], timeout=0)
++    remoto.process.run(conn, ['mkdir', '-p', '/var/log/radosgw', ], timeout=0)
+     distro.conn.remote_module.touch_file('/var/log/radosgw/client.radosgw.gateway.log')
+     remoto.process.run(conn, ['chown', 'apache:apache', '/var/log/radosgw/client.radosgw.gateway.log', ],
+                        timeout=0)
+-- 
+2.8.0.rc3
+

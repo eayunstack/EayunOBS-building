@@ -1,0 +1,61 @@
+From e3c9dec64ae1eb7ba43568cbaa4df756b522073a Mon Sep 17 00:00:00 2001
+From: isyippee <yippee_liu@163.com>
+Date: Wed, 16 Dec 2015 11:11:32 +0800
+Subject: [PATCH 11/14] Add multi domain name when deploy
+
+Signed-off-by: isyippee <yippee_liu@163.com>
+---
+ ceph_deploy/eayunrgw.py | 16 ++++++++++++++--
+ 1 file changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/ceph_deploy/eayunrgw.py b/ceph_deploy/eayunrgw.py
+index 66fd741..d8e554c 100644
+--- a/ceph_deploy/eayunrgw.py
++++ b/ceph_deploy/eayunrgw.py
+@@ -45,7 +45,8 @@ REGION_CONTECT = '''{ "name": "%s",
+             "tags": []
+         }
+     ],
+-    "default_placement": "default-placement"}'''
++    "default_placement": "default-placement"},
++    "hostnames": [%s]'''
+ 
+ ZONE_CONTECT = '''{ "domain_root": ".%(zone)s.domain.rgw",
+       "control_pool": ".%(zone)s.rgw.control",
+@@ -237,6 +238,9 @@ def eayunrgw_create(args):
+     region_name = args.region
+     zone_name = args.zone
+     host_name = args.host
++    domain = args.domain
++    if not domain:
++        domain = ["obs.eayun.com"]
+     gw_name = '%s-%s' % (zone_name, host_name)
+     distro = hosts.get(host_name, username=args.username)
+     conn = distro.conn
+@@ -269,7 +273,8 @@ def eayunrgw_create(args):
+         host_name,
+         zone_name,
+         zone_name,
+-        host_name
++        host_name,
++        reduce(lambda x, y: x+','+y, domain)
+     )
+     region_path = '/etc/ceph/%s.json' % region_name
+     distro.conn.remote_module.write_file(region_path, region_context)
+@@ -433,6 +438,13 @@ def make(parser):
+         required=True,
+         help='The host to which deploy eayun rgw'
+         )
++    eayunrgw_create.add_argument(
++        '--domain',
++        metavar='DOMAIN',
++        required=False,
++        nargs='*',
++        help='The domain name to which deploy eayun rgw'
++        )
+ 
+     eayunrgw_create = eayunrgw_parser.add_parser(
+         'add',
+-- 
+2.8.0.rc3
+

@@ -1,0 +1,26 @@
+From 5f07fd69d878a21bb8d2845a7c5df5ee08baf113 Mon Sep 17 00:00:00 2001
+From: isyippee <yippee_liu@163.com>
+Date: Tue, 12 Jan 2016 15:49:43 +0800
+Subject: [PATCH 13/14] Modify http start command
+
+Signed-off-by: isyippee <yippee_liu@163.com>
+---
+ ceph_deploy/eayunrgw.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/ceph_deploy/eayunrgw.py b/ceph_deploy/eayunrgw.py
+index cdda377..f26f6a3 100644
+--- a/ceph_deploy/eayunrgw.py
++++ b/ceph_deploy/eayunrgw.py
+@@ -86,7 +86,7 @@ def get_hosts(cfg, zone_name):
+ def restart_serv(conn, gw_name):
+     remoto.process.run(conn, ['/etc/init.d/ceph', 'restart', 'mon', ], timeout=7)
+     remoto.process.run(conn,
+-                       ['/etc/init.d/ceph-radosgw', '-n', 'client.radosgw.%s' % gw_name],
++                       ['/etc/init.d/ceph-radosgw', 'start', '-n', 'client.radosgw.%s' % gw_name],
+                        timeout=7)
+     remoto.process.run(conn, ['systemctl', 'enable', 'httpd', ], timeout=7)
+     remoto.process.run(conn, ['systemctl', 'restart', 'httpd', ], timeout=7)
+-- 
+2.8.0.rc3
+

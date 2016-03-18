@@ -1,0 +1,30 @@
+From 73d05f9a7a9f9dc490bf58202eb8c3792d60ee8b Mon Sep 17 00:00:00 2001
+From: isyippee <yippee_liu@163.com>
+Date: Tue, 12 Jan 2016 15:46:18 +0800
+Subject: [PATCH 12/14] Missing '.' in pool name
+
+Signed-off-by: isyippee <yippee_liu@163.com>
+---
+ ceph_deploy/eayunrgw.py | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/ceph_deploy/eayunrgw.py b/ceph_deploy/eayunrgw.py
+index d8e554c..cdda377 100644
+--- a/ceph_deploy/eayunrgw.py
++++ b/ceph_deploy/eayunrgw.py
+@@ -249,9 +249,9 @@ def eayunrgw_create(args):
+     new_rgw_keyring(args, gw_name, conn)
+ 
+     # Create pools.
+-    suffix = ['rgw', '.rgw.root', '.rgw.control', '.rgw.gc',
+-              'rgw.buckets', 'rgw.buckets.index', 'rgw.buckets.extra',
+-              '.log', 'intent-log', 'usage', '.users',
++    suffix = ['.rgw', '.rgw.root', '.rgw.control', '.rgw.gc',
++              '.rgw.buckets', '.rgw.buckets.index', '.rgw.buckets.extra',
++              '.log', '.intent-log', '.usage', '.users',
+               '.users.email', '.users.uid']
+     pools = ['.%s%s' % (zone_name, suf) for suf in suffix]
+     for pool in pools:
+-- 
+2.8.0.rc3
+

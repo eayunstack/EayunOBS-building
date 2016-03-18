@@ -1,0 +1,37 @@
+From 7814e47d9da5c43aeb261fb3657730a369dad291 Mon Sep 17 00:00:00 2001
+From: isyippee <yippee_liu@163.com>
+Date: Wed, 13 Jan 2016 11:43:42 +0800
+Subject: [PATCH 14/14] Modify region infile
+
+Signed-off-by: isyippee <yippee_liu@163.com>
+---
+ ceph_deploy/eayunrgw.py | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/ceph_deploy/eayunrgw.py b/ceph_deploy/eayunrgw.py
+index f26f6a3..df492ad 100644
+--- a/ceph_deploy/eayunrgw.py
++++ b/ceph_deploy/eayunrgw.py
+@@ -45,8 +45,8 @@ REGION_CONTECT = '''{ "name": "%s",
+             "tags": []
+         }
+     ],
+-    "default_placement": "default-placement"},
+-    "hostnames": [%s]'''
++    "default_placement": "default-placement",
++    "hostnames": [%s]},'''
+ 
+ ZONE_CONTECT = '''{ "domain_root": ".%(zone)s.domain.rgw",
+       "control_pool": ".%(zone)s.rgw.control",
+@@ -274,7 +274,7 @@ def eayunrgw_create(args):
+         zone_name,
+         zone_name,
+         host_name,
+-        reduce(lambda x, y: x+','+y, domain)
++        ",".join("\"%s\"" % i for i in domain)
+     )
+     region_path = '/etc/ceph/%s.json' % region_name
+     distro.conn.remote_module.write_file(region_path, region_context)
+-- 
+2.8.0.rc3
+

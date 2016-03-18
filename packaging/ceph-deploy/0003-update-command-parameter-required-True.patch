@@ -1,0 +1,50 @@
+From 956b4d413d05f1bd99d4796e73b81f5ad8b2cd4a Mon Sep 17 00:00:00 2001
+From: isyippee <yippee_liu@163.com>
+Date: Wed, 11 Nov 2015 10:40:30 +0800
+Subject: [PATCH 03/14] update command parameter required=True
+
+---
+ ceph_deploy/eayunrgw.py | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/ceph_deploy/eayunrgw.py b/ceph_deploy/eayunrgw.py
+index 2704725..056a5ee 100644
+--- a/ceph_deploy/eayunrgw.py
++++ b/ceph_deploy/eayunrgw.py
+@@ -417,16 +417,19 @@ def make(parser):
+     eayunrgw_create.add_argument(
+         '--region',
+         metavar='REGION',
++        required=True,
+         help='The name of logical geographic area, e.g. beijing'
+         )
+     eayunrgw_create.add_argument(
+         '--zone',
+         metavar='ZONE',
++        required=True,
+         help='The name of logical grouping, e.g. daxing'
+         )
+     eayunrgw_create.add_argument(
+         '--host',
+         metavar='HOST',
++        required=True,
+         help='The host to which deploy eayun rgw'
+         )
+ 
+@@ -437,11 +440,13 @@ def make(parser):
+     eayunrgw_create.add_argument(
+         '--zone',
+         metavar='ZONE',
++        required=True,
+         help='The name of logical grouping, e.g. daxing'
+         )
+     eayunrgw_create.add_argument(
+         '--host',
+         metavar='HOST',
++        required=True,
+         help='The host to which deploy eayun rgw'
+         )
+ 
+-- 
+2.8.0.rc3
+
