@@ -13,7 +13,7 @@
 #################################################################################
 Name:           ceph-deploy
 Version:       1.5.28
-Release:        1%{?dist_eayunobs}
+Release:        2%{?dist_eayunobs}
 Summary:        Admin and deploy tool for Ceph
 License:        MIT
 Group:          System/Filesystems
@@ -34,6 +34,13 @@ Patch0011:      0011-Add-multi-domain-name-when-deploy.patch
 Patch0012:      0012-Missing-.-in-pool-name.patch
 Patch0013:      0013-Modify-http-start-command.patch
 Patch0014:      0014-Modify-region-infile.patch
+Patch0015:      0015-eayunrgw-implement-EayunOBS-HA-and-LB-setup-function.patch
+Patch0016:      0016-eayunrgw-change-rgw-backend-listening-port-to-8080.patch
+Patch0017:      0017-eayunrgw-haproxy-stick-table-size-should-equal-to-2-.patch
+Patch0018:      0018-eayunrgw-clean-load-balance-init-procejure.patch
+Patch0019:      0019-eayunrgw-comment-stick-table.patch
+Patch0020:      0020-eayunrgw-change-rgw-backend-listening-port-to-9090.patch
+Patch0021:      0021-eayunrgw-check-new-host-in-ceph.conf-before-extend-l.patch
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 BuildRequires:  python-devel
@@ -103,6 +110,15 @@ install -m 0755 -D scripts/ceph-deploy $RPM_BUILD_ROOT/usr/bin
 %{python_sitelib}/*
 
 %changelog
+* Mon Apr 11 2016 Zhao Chao <chao.zhao@eayun.com> - 1.5.28-2.eayunobs.1.0
+- add 0015-eayunrgw-implement-EayunOBS-HA-and-LB-setup-function.patch
+- add 0016-eayunrgw-change-rgw-backend-listening-port-to-8080.patch
+- add 0017-eayunrgw-haproxy-stick-table-size-should-equal-to-2-.patch
+- add 0018-eayunrgw-clean-load-balance-init-procejure.patch
+- add 0019-eayunrgw-comment-stick-table.patch
+- add 0020-eayunrgw-change-rgw-backend-listening-port-to-9090.patch
+- add 0021-eayunrgw-check-new-host-in-ceph.conf-before-extend-l.patch
+
 * Fri Mar 18 2016 Zhao Chao <chao.zhao@eayun.com> - 1.5.28-1.eayunobs.1.0
 - add 0001-eayunrgw-add-eayunrgw-deploy-architect.patch
 - add 0002-the-implement-of-eayunrgw.patch

@@ -1,0 +1,36 @@
+From bcd92833637a1fd49ec464c4ab56363d879533e4 Mon Sep 17 00:00:00 2001
+From: Zhao Chao <zhaochao1984@gmail.com>
+Date: Wed, 30 Mar 2016 14:31:53 +0800
+Subject: [PATCH 17/21] eayunrgw: haproxy stick-table size should equal to 2
+ when stick on dst.
+
+see the comments on page:
+http://blog.haproxy.com/2014/01/17/emulating-activepassing-application-clustering-with-haproxy/
+
+note:
+the comments in above page said stick-table size should set to 1, but in
+fact when setting to 1, if the backend server of the existed entry is
+down, new connections will be blocked as the existed entry would not
+refresh. Setting to 2 will avoid this problem.
+
+Signed-off-by: Zhao Chao <zhaochao1984@gmail.com>
+---
+ ceph_deploy/eayunrgw.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/ceph_deploy/eayunrgw.py b/ceph_deploy/eayunrgw.py
+index f3121f5..3aa4f89 100644
+--- a/ceph_deploy/eayunrgw.py
++++ b/ceph_deploy/eayunrgw.py
+@@ -120,7 +120,7 @@ backend rgw_back
+     balance roundrobin
+     option httpchk HEAD / HTTP/1.1\\r\\nHost:\ localhost
+     cookie RADOSGWLB insert indirect nocache
+-    stick-table type ip size 1 nopurge size 50k expire 1d peers ceph_peers
++    stick-table type ip size 2 nopurge peers ceph_peers
+     stick on dst'''
+ 
+ HAPROXY_SERVER_CONTECT='    server %(host)s %(host)s:8080 check cookie %(host)s'
+-- 
+2.8.0.rc3
+
