@@ -92,6 +92,13 @@ An easy to use admin tool for deploy ceph storage clusters.
 %patch0012 -p1
 %patch0013 -p1
 %patch0014 -p1
+%patch0015 -p1
+%patch0016 -p1
+%patch0017 -p1
+%patch0018 -p1
+%patch0019 -p1
+%patch0020 -p1
+%patch0021 -p1
 
 %build
 #python setup.py build
