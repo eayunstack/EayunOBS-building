@@ -1,0 +1,28 @@
+From 8a99feab07aec19f3417938ec384dcea2fededde Mon Sep 17 00:00:00 2001
+From: Zhao Chao <zhaochao1984@gmail.com>
+Date: Mon, 11 Apr 2016 11:24:36 +0800
+Subject: [PATCH 19/21] eayunrgw: comment stick table.
+
+Signed-off-by: Zhao Chao <zhaochao1984@gmail.com>
+---
+ ceph_deploy/eayunrgw.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/ceph_deploy/eayunrgw.py b/ceph_deploy/eayunrgw.py
+index 7cb1cfd..15ee703 100644
+--- a/ceph_deploy/eayunrgw.py
++++ b/ceph_deploy/eayunrgw.py
+@@ -120,8 +120,8 @@ backend rgw_back
+     balance roundrobin
+     option httpchk HEAD / HTTP/1.1\\r\\nHost:\ localhost
+     cookie RADOSGWLB insert indirect nocache
+-    stick-table type ip size 2 nopurge peers ceph_peers
+-    stick on dst'''
++    #stick-table type ip size 2 nopurge peers ceph_peers
++    #stick on dst'''
+ 
+ HAPROXY_SERVER_CONTECT='    server %(host)s %(host)s:8080 check cookie %(host)s'
+ 
+-- 
+2.8.0.rc3
+

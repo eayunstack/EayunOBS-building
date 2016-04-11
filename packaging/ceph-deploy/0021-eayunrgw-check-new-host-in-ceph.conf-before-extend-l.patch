@@ -1,0 +1,29 @@
+From a886572a4d7eaef17ca8ac339185ceca66f31a21 Mon Sep 17 00:00:00 2001
+From: Zhao Chao <zhaochao1984@gmail.com>
+Date: Mon, 11 Apr 2016 12:45:31 +0800
+Subject: [PATCH 21/21] eayunrgw: check new host in ceph.conf before extend lb
+ cluster.
+
+Signed-off-by: Zhao Chao <zhaochao1984@gmail.com>
+---
+ ceph_deploy/eayunrgw.py | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/ceph_deploy/eayunrgw.py b/ceph_deploy/eayunrgw.py
+index 8ddca56..f8f6fa7 100644
+--- a/ceph_deploy/eayunrgw.py
++++ b/ceph_deploy/eayunrgw.py
+@@ -747,6 +747,10 @@ def eayunrgw_lb_extend(args):
+     hosts_list = get_hosts(cfg)
+ 
+     new_host = args.host
++    if not new_host in hosts_list:
++        LOG.error("New host: %s not in ceph.conf!" % new_host)
++        raise exc.GenericError("lb-extend: new host not in ceph.conf\n")
++
+     hauser = args.hauser
+     hapass = args.hapass
+ 
+-- 
+2.8.0.rc3
+
