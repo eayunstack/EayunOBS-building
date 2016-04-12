@@ -5,7 +5,7 @@ selinux --disable
 firewall --disabled
 clearpart --all --initlabel
 zerombr
-services --enabled=pcsd,corosync,pacemaker
+services --enabled=pcsd
 
 %packages
 @Core
@@ -21,4 +21,4 @@ echo 'net.ipv4.ip_nonlocal_bind=1' >> /etc/sysctl.conf
 echo 'hacluster:$6$EayunOBS$urxceAgu/OlKHTm/JQyl/LBuVcLI8u.emVy.lIAs08zzZTKDmsxXTBoG.EfDjYY4oCegcbM0QKoJ8dszsHYpL/' | chpasswd --encrypted
 %end
 
-reboot --reject
+reboot --eject
